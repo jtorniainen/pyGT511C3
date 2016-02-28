@@ -19,7 +19,7 @@ import time
 
 def debug_msg(message, tag='Generic'):
     """
-    Timestampped debug messages.
+    Timestampped debug messages to stdout.
     """
     print('[{}][{}] {}'.format(time.asctime()[11:-5], tag, message))
 
@@ -151,13 +151,13 @@ class Command_Packet(Packet):
             Command Packet Constructor
         '''
         commandName = args[0]
-        kwargs.setdefault('UseSerialDebug', True)
-        self.UseSerialDebug = kwargs['UseSerialDebug']
-        if self.UseSerialDebug:
+        kwargs.setdefault('serial_dbg', True)
+        self.serial_dbg = kwargs['serial_dbg']
+        if self.serial_dbg:
             print 'Command: %s' % commandName
         self.cmd = self.commands[commandName]
 
-    UseSerialDebug = True
+    serial_dbg = True
     Parameter = bytearray(4)
 
     def GetPacketBytes(self):
@@ -230,16 +230,16 @@ class Response_Packet(Packet):
         'INVALID': 0XFFFF     # Used when parsing fails
         }
 
-    def __init__(self, _buffer=None, UseSerialDebug=False):
+    def __init__(self, _buffer=None, serial_dbg=False):
         '''
         Creates and parses a response packet from the finger print scanner
         '''
-        self.UseSerialDebug = UseSerialDebug
+        self.serial_dbg = serial_dbg
 
         if not (_buffer is None):
             self.RawBytes = _buffer
             self._lastBuffer = bytes(_buffer)
-            if self.UseSerialDebug:
+            if self.serial_dbg:
                 debug_msg('Read: {}'.format(self.serializeToSend(_buffer)))
             if _buffer.__len__() >= 12:
                 self.ACK = True if _buffer[8] == 0x30 else False
@@ -260,7 +260,7 @@ class Response_Packet(Packet):
     ResponseBytes = bytearray(2)
     ACK = False
     Error = None
-    UseSerialDebug = True
+    serial_dbg = True
 
     def ParseFromBytes(self, high, low):
         '''
@@ -300,24 +300,15 @@ class SerialCommander:
         return bytearr
 
 
-def connect(device_name=None, baud=None, timeout=None, is_com=True):
+def connect(device_name, baud, timeout):
     _ser = None
-    if device_name is None:
-        device_name = DEVICE_NAME
-    else:
-        DEVICE_NAME = device_name
-    if baud is None:
-        baud = 9600
-    if timeout is None:
-        timeout = 10000
-    if isFingerPrintConnected(is_com):
-        try:
-            _ser = serial.Serial(device_name, baudrate=baud, timeout=timeout)
-            if not _ser.isOpen():
-                _ser.open()
-        except Exception as e:
-            debug_msg('Cannot connect to device {}'.format(str(e)))
-            pass
+    try:
+        _ser = serial.Serial(device_name, baudrate=baud, timeout=timeout)
+        if not _ser.isOpen():
+            _ser.open()
+    except Exception as e:
+        debug_msg('Cannot connect to device {}'.format(str(e)))
+        pass
     return _ser
 
 
@@ -328,32 +319,32 @@ class FPS_GT511C3(SerialCommander):
     _baud = None
     _timeout = None
 
-    '''
     # Enables verbose debug output using hardware Serial
-    '''
-    UseSerialDebug = True
+    serial_dbg = True
 
-    def __init__(self, device_name=None, baud=None, timeout=None, is_com=True):
+    def __init__(self, device_name='dev/ttyAMA0', baud=9600, timeout=10000):
         '''
         Creates a new object to interface with the fingerprint scanner
         '''
         self._device_name = device_name
         self._baud = baud
         self._timeout = timeout
-        self._serial = connect(device_name, baud, timeout, is_com=is_com)
+        self._serial = connect(device_name, baud, timeout)
         if self._serial:
             time.sleep(.1)
-            self.Open()
-        elif self.UseSerialDebug:
-            debug_msg('Cannot connect to device {}'.format(self._device_name), 'FPS_GT511C3')
+            debug_msg('Connecting to {} ({})'.format(device_name, baud))
+            self.open()
+        elif self.serial_dbg:
+            debug_msg('Cannot connect to device {}'.format(self._device_name),
+                      'FPS_GT511C3')
 
-    def Open(self):
+    def open(self):
         '''
             Initialises the device and gets ready for commands
         '''
-        self.ChangeBaudRate(BAUD)
+        # self.ChangeBaudRate(BAUD)
         time.sleep(.1)
-        cp = Command_Packet('Open', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('Open', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(1)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
@@ -366,7 +357,7 @@ class FPS_GT511C3(SerialCommander):
              Does not actually do anything (according to the datasheet)
              I implemented open, so had to do closed too... lol
         '''
-        cp = Command_Packet('Close', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('Close', serial_dbg=self.serial_dbg)
         cp.Parameter[0] = 0x00
         cp.Parameter[1] = 0x00
         cp.Parameter[2] = 0x00
@@ -374,7 +365,7 @@ class FPS_GT511C3(SerialCommander):
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
         rp = self.GetResponse()
-        if not self._serial is None:
+        if self._serial:
             self._serial.close()
         del packetbytes
         return rp.ACK
@@ -386,7 +377,7 @@ class FPS_GT511C3(SerialCommander):
              Parameter: true turns on the backlight, false turns it off
              Returns: True if successful, false if not
         '''
-        cp = Command_Packet('CmosLed', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('CmosLed', serial_dbg=self.serial_dbg)
         cp.Parameter[0] = 0x01 if on else 0x00
         cp.Parameter[1] = 0x00
         cp.Parameter[2] = 0x00
@@ -404,31 +395,28 @@ class FPS_GT511C3(SerialCommander):
              Changes the baud rate of the connection
              Parameter: 9600 - 115200
              Returns: True if success, false if invalid baud
-             NOTE: Untested (don't have a logic level changer and a voltage divider is too slow)
+             NOTE: Untested (don't have a logic level changer and a voltage
+             divider is too slow)
         '''
         retval = False
         if baud != self._serial.getBaudrate():
-            cp = Command_Packet(
-                'ChangeBaudrate',
-                UseSerialDebug=self.UseSerialDebug)
+            cp = Command_Packet('ChangeBaudrate', serial_dbg=self.serial_dbg)
             cp.ParameterFromInt(baud)
             packetbytes = cp.GetPacketBytes()
             self.SendCommand(packetbytes, 12)
-            delay(0.5)
+            time.sleep(.5)
             rp = self.GetResponse()
-            delay(0.5)
+            time.sleep(.5)
             retval = rp.ACK
             if retval:
-                if self.UseSerialDebug:
-                    debug_msg('Changing port baudrate')
+                if self.serial_dbg:
+                    debug_msg('Changing port baudrate to {}'.format(baud))
                 self._serial.close()
-                BAUD = baud
-                self._serial = connect(
-                    self._device_name,
-                    self._baud,
-                    self._timeout)
-            del rp
-            del packetbytes
+                self._serial = connect(self._device_name,
+                                       self._baud,
+                                       self._timeout)
+            del rp  # TODO why del these?
+            del packetbytes  # TODO why del these?
         return retval
 
     def GetEnrollCount(self):
@@ -438,7 +426,7 @@ class FPS_GT511C3(SerialCommander):
         '''
         cp = Command_Packet(
             'GetEnrollCount',
-            UseSerialDebug=self.UseSerialDebug)
+            serial_dbg=self.serial_dbg)
         cp.Parameter[0] = 0x00
         cp.Parameter[1] = 0x00
         cp.Parameter[2] = 0x00
@@ -459,7 +447,7 @@ class FPS_GT511C3(SerialCommander):
         '''
         cp = Command_Packet(
             'CheckEnrolled',
-            UseSerialDebug=self.UseSerialDebug)
+            serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
         del cp
@@ -480,7 +468,7 @@ class FPS_GT511C3(SerialCommander):
                 2 - Invalid Position
                 3 - Position(ID) is already used
         '''
-        cp = Command_Packet('EnrollStart', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('EnrollStart', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
         del cp
@@ -507,7 +495,7 @@ class FPS_GT511C3(SerialCommander):
                 2 - Bad finger
                 3 - ID in use
         '''
-        cp = Command_Packet('Enroll1', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('Enroll1', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         del cp
         self.SendCommand(packetbytes, 12)
@@ -531,7 +519,7 @@ class FPS_GT511C3(SerialCommander):
                 2 - Bad finger
                 3 - ID in use
         '''
-        cp = Command_Packet('Enroll2', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('Enroll2', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         del cp
         self.SendCommand(packetbytes, 12)
@@ -556,7 +544,7 @@ class FPS_GT511C3(SerialCommander):
                 2 - Bad finger
                 3 - ID in use
         '''
-        cp = Command_Packet('Enroll3', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('Enroll3', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         del cp
         self.SendCommand(packetbytes, 12)
@@ -576,9 +564,7 @@ class FPS_GT511C3(SerialCommander):
              Checks to see if a finger is pressed on the FPS
              Return: true if finger pressed, false if not
         '''
-        cp = Command_Packet(
-            'IsPressFinger',
-            UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('IsPressFinger', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
         rp = self.GetResponse()
@@ -597,7 +583,7 @@ class FPS_GT511C3(SerialCommander):
              Deletes the specified ID (enrollment) from the database
              Returns: true if successful, false if position invalid
         '''
-        cp = Command_Packet('DeleteID', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('DeleteID', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
@@ -613,7 +599,7 @@ class FPS_GT511C3(SerialCommander):
              Deletes all IDs (enrollments) from the database
              Returns: true if successful, false if db is empty
         '''
-        cp = Command_Packet('DeleteAll', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('DeleteAll', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
         rp = self.GetResponse()
@@ -633,7 +619,7 @@ class FPS_GT511C3(SerialCommander):
                 2 - ID is not in use
                 3 - Verified FALSE (not the correct finger)
         '''
-        cp = Command_Packet('Verify1_1', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('Verify1_1', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
@@ -653,12 +639,14 @@ class FPS_GT511C3(SerialCommander):
 
     def Identify1_N(self):
         '''
-             Checks the currently pressed finger against all enrolled fingerprints
+             Checks the currently pressed finger against all enrolled
+             fingerprints
              Returns:
-                0-199: Verified against the specified ID (found, and here is the ID number)
+                0-199: Verified against the specified ID (found, and here is
+                       the ID number)
                 200: Failed to find the fingerprint in the database
         '''
-        cp = Command_Packet('Identify1_N', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('Identify1_N', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
         rp = self.GetResponse()
@@ -673,13 +661,15 @@ class FPS_GT511C3(SerialCommander):
     def CaptureFinger(self, highquality=True):
         '''
              Captures the currently pressed finger into onboard ram
-             Parameter: true for high quality image(slower), false for low quality image (faster)
-             Generally, use high quality for enrollment, and low quality for verification/identification
+             Parameter: true for high quality image(slower), false for low
+                        quality image (faster)
+
+             Generally, use high quality for enrollment, and low quality for
+             verification/identification
+
              Returns: True if ok, false if no finger pressed
         '''
-        cp = Command_Packet(
-            'CaptureFinger',
-            UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('CaptureFinger', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(1 if highquality else 0)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
@@ -692,11 +682,13 @@ class FPS_GT511C3(SerialCommander):
 
     def GetImage(self):
         '''
-             Gets an image that is 258x202 (52116 bytes) and returns it in 407 Data_Packets
-             Use StartDataDownload, and then GetNextDataPacket until done
+             Gets an image that is 258x202 (52116 bytes) and returns it in
+             407 Data_Packets Use StartDataDownload, and then
+             GetNextDataPacket until done
+
              Returns: True (device confirming download starting)
         '''
-        cp = Command_Packet('GetImage', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('GetImage', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
         rp = self.GetResponse()
@@ -705,13 +697,15 @@ class FPS_GT511C3(SerialCommander):
 
     def GetRawImage(self):
         '''
-             Gets an image that is qvga 160x120 (19200 bytes) and returns it in 150 Data_Packets
-             Use StartDataDownload, and then GetNextDataPacket until done
+             Gets an image that is qvga 160x120 (19200 bytes) and returns
+             it in 150 Data_Packets Use StartDataDownload, and then
+             GetNextDataPacket until done
+
              Returns: True (device confirming download starting)
              Not implemented due to memory restrictions on the arduino
              may revisit this if I find a need for it
         '''
-        cp = Command_Packet('GetRawImage', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('GetRawImage', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
         rp = self.GetResponse()
@@ -720,7 +714,6 @@ class FPS_GT511C3(SerialCommander):
 
     def GetTemplate(self, ID):
         '''
-
              Gets a template from the fps (498 bytes) in 4 Data_Packets
              Use StartDataDownload, and then GetNextDataPacket until done
              Parameter: 0-199 ID number
@@ -729,7 +722,7 @@ class FPS_GT511C3(SerialCommander):
                 1 - Invalid position
                 2 - ID not used (no template to download
         '''
-        cp = Command_Packet('GetTemplate', UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('GetTemplate', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
         self.SendCommand(packetbytes, 12)
@@ -755,21 +748,25 @@ class FPS_GT511C3(SerialCommander):
             203 - Device error
         int SetTemplate(byte* tmplt, int id, bool duplicateCheck);
     def SetTemplate(self,tmplt,ID,duplicateCheck):
-        cp = Command_Packet('SetTemplate',UseSerialDebug=self.UseSerialDebug)
+        cp = Command_Packet('SetTemplate',serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
 
 
          Commands that are not implemented (and why)
-         VerifyTemplate1_1 - Couldn't find a good reason to implement this on an arduino
-         IdentifyTemplate1_N - Couldn't find a good reason to implement this on an arduino
-         MakeTemplate - Couldn't find a good reason to implement this on an arduino
+         VerifyTemplate1_1 - Couldn't find a good reason to implement this
+                             on an arduino
+         IdentifyTemplate1_N - Couldn't find a good reason to implement this
+                               on an arduino
+         MakeTemplate - Couldn't find a good reason to implement this on an
+                        arduino
          UsbInternalCheck - not implemented - Not valid config for arduino
          GetDatabaseStart - historical command, no longer supported
          GetDatabaseEnd - historical command, no longer supported
          UpgradeFirmware - Data Sheet says not supported
          UpgradeISOCDImage - Data Sheet says not supported
          SetIAPMode - for upgrading firmware (which is not supported)
-         Ack and Nack    are listed as a commands for some unknown reason... not implemented
+         Ack and Nack    are listed as a commands for some unknown
+                         reason... not implemented
     '''
 
     def SendCommand(self, cmd, length):
@@ -784,37 +781,40 @@ class FPS_GT511C3(SerialCommander):
              may revisit this if I find a need for it
             Data_Packet GetNextDataPacket();
         '''
-        if not self._serial is None:
+        if self._serial:
             self._serial.write(bytes(cmd))
-            if self.UseSerialDebug:
+            if self.serial_dbg:
                 print self.serializeToSend(cmd)
                 print bytes(cmd)
                 print repr(bytes(cmd))[1:-1]
         else:
-            if self.UseSerialDebug:
-                debug_msg('Cannot write to {}'.format(self._device_name), 'SendCommand')
+            if self.serial_dbg:
+                debug_msg('Cannot write to {}'.format(self._device_name),
+                          'SendCommand')
 
     def GetResponse(self):
         '''
-        Gets the response to the command from the software serial channel (and waits for it)
+        Gets the response to the command from the software serial channel
+        (and waits for it)
         '''
         time.sleep(.1)
         if self._serial is None:
             rp = Response_Packet()
-            debug_msg('Cannot read from {}'.format(self._device_name), 'GetResponse')
+            debug_msg('Cannot read from {}'.format(self._device_name),
+                      'GetResponse')
         else:
             r = bytearray(self._serial.read(self._serial.inWaiting()))
-            rp = Response_Packet(r, self.UseSerialDebug)
+            rp = Response_Packet(r, self.serial_dbg)
 
         if rp.ACK:
             time.sleep(.1)
             r2 = bytearray(self._serial.read(self._serial.inWaiting()))
-            rp2 = Response_Packet(r2, self.UseSerialDebug)
+            rp2 = Response_Packet(r2, self.serial_dbg)
             while str(rp2._lastBuffer).__len__() > 0:
                 rp.RawBytes.extend(rp2.RawBytes)
                 rp._lastBuffer += rp2._lastBuffer
                 time.sleep(.1)
                 r2 = bytearray(self._serial.read(self._serial.inWaiting()))
-                rp2 = Response_Packet(r2, self.UseSerialDebug)
+                rp2 = Response_Packet(r2, self.serial_dbg)
         self._lastResponse = rp
         return rp
