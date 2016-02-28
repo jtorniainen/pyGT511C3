@@ -1,21 +1,20 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 '''
+Originally
 Created on 21/03/2014
 
 @author: Jean Machuca <correojean@gmail.com> @jeanmachuca
+
+Modified on 28/02/2016
+github.com/jtorniainen
 '''
 
 import os
 import serial
 from serial.tools import list_ports
-import time
 import binascii
-
-
-def delay(seconds):
-    '''
-    wait a number of secons
-    '''
-    time.sleep(seconds)
 
 
 def serial_ports():
@@ -42,11 +41,6 @@ def devices(index=None):
     '''
     portList = [portName for portName in serial_ports()]
     return portList if index is None else portList[index]
-
-if os.name == 'nt':
-    DEVICE_NAME = 'COM3'
-else:
-    DEVICE_NAME = '/dev/cu.usbserial-A601EQ14'  # default device to use
 
 
 def isFingerPrintConnected(is_com=True):
@@ -326,9 +320,6 @@ def connect(device_name=None, baud=None, timeout=None, is_com=True):
             print '[Connect] Cannot connect to device %s' % (str(e))
             pass
     return _ser
-
-#BAUD = 115200
-BAUD = 9600
 
 
 class FPS_GT511C3(SerialCommander):
