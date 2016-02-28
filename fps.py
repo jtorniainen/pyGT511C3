@@ -7,8 +7,7 @@ Created on 21/03/2014
 
 @author: Jean Machuca <correojean@gmail.com> @jeanmachuca
 
-Modified on 28/02/2016
-github.com/jtorniainen
+Modified on 28/02/2016 by github.com/jtorniainen
 '''
 
 import os
@@ -336,17 +335,17 @@ class FPS_GT511C3(SerialCommander):
 
     def __init__(self, device_name=None, baud=None, timeout=None, is_com=True):
         '''
-            Creates a new object to interface with the fingerprint scanner
+        Creates a new object to interface with the fingerprint scanner
         '''
         self._device_name = device_name
         self._baud = baud
         self._timeout = timeout
         self._serial = connect(device_name, baud, timeout, is_com=is_com)
-        if not self._serial is None:
+        if self._serial:
             time.sleep(.1)
             self.Open()
         elif self.UseSerialDebug:
-            debug_msg('FPS_GT511C3', 'Cannot connect to device {}'.format(self._device_name))
+            debug_msg('Cannot connect to device {}'.format(self._device_name), 'FPS_GT511C3')
 
     def Open(self):
         '''
