@@ -31,11 +31,11 @@ with baud_to_115200.py sample code
 
 
 '''
-import FPS
+import fps
 import time
 
 if __name__ == '__main__':
-    fps = FPS.FPS_GT511C3()
+    fps = fps.FPS_GT511C3()
     fps.SetLED(True)  # Turns ON the CMOS LED
     time.sleep(5)
     fps.SetLED(False)  # Turns ON the CMOS LED

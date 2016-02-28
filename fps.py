@@ -322,7 +322,7 @@ class FPS_GT511C3(SerialCommander):
     # Enables verbose debug output using hardware Serial
     serial_dbg = True
 
-    def __init__(self, device_name='dev/ttyAMA0', baud=9600, timeout=10000):
+    def __init__(self, device_name='/dev/ttyAMA0', baud=9600, timeout=10000):
         '''
         Creates a new object to interface with the fingerprint scanner
         '''
