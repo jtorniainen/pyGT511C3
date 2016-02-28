@@ -15,6 +15,14 @@ import os
 import serial
 from serial.tools import list_ports
 import binascii
+import time
+
+
+def debug_msg(message, tag='Generic'):
+    """
+    Timestampped debug messages.
+    """
+    print('[{}][{}] {}'.format(time.asctime()[11:-5], tag, message))
 
 
 def serial_ports():
@@ -36,19 +44,12 @@ def serial_ports():
 
 def devices(index=None):
     '''
-    device's list
-    :param index if this param is not None, then returns the device name of the index in the list
+    Devices list
+    :param index if this param is not None, then returns the device name of
+    the index in the list
     '''
     portList = [portName for portName in serial_ports()]
     return portList if index is None else portList[index]
-
-
-def isFingerPrintConnected(is_com=True):
-    '''
-        Detect if the fingerprint device is present in the device list, only for com ports
-    '''
-    return True if (not is_com) or devices().__contains__(
-        DEVICE_NAME) else False
 
 
 class Packet:
@@ -162,7 +163,7 @@ class Command_Packet(Packet):
 
     def GetPacketBytes(self):
         '''
-        returns the 12 bytes of the generated command packet
+        Returns the 12 bytes of the generated command packet
         remember to call delete on the returned array
         '''
 
@@ -198,11 +199,9 @@ class Command_Packet(Packet):
 
 
 class Response_Packet(Packet):
-
     '''
         Response Packet Class
     '''
-
     errors = {
         'NO_ERROR': 0x0000,    # Default value. no error
         'NACK_TIMEOUT': 0x1001,    # Obsolete, capture timeout
@@ -234,7 +233,7 @@ class Response_Packet(Packet):
 
     def __init__(self, _buffer=None, UseSerialDebug=False):
         '''
-        creates and parses a response packet from the finger print scanner
+        Creates and parses a response packet from the finger print scanner
         '''
         self.UseSerialDebug = UseSerialDebug
 
@@ -242,7 +241,7 @@ class Response_Packet(Packet):
             self.RawBytes = _buffer
             self._lastBuffer = bytes(_buffer)
             if self.UseSerialDebug:
-                print 'readed: %s' % self.serializeToSend(_buffer)
+                debug_msg('Read: {}'.format(self.serializeToSend(_buffer)))
             if _buffer.__len__() >= 12:
                 self.ACK = True if _buffer[8] == 0x30 else False
                 self.ParameterBytes[0] = _buffer[4]
@@ -266,7 +265,8 @@ class Response_Packet(Packet):
 
     def ParseFromBytes(self, high, low):
         '''
-        parses bytes into one of the possible errors from the finger print scanner
+        Parses bytes into one of the possible errors from the finger print
+        scanner
         '''
         e = 'INVALID'
         if high == 0x01:
@@ -317,7 +317,7 @@ def connect(device_name=None, baud=None, timeout=None, is_com=True):
             if not _ser.isOpen():
                 _ser.open()
         except Exception as e:
-            print '[Connect] Cannot connect to device %s' % (str(e))
+            debug_msg('Cannot connect to device {}'.format(str(e)))
             pass
     return _ser
 
@@ -343,17 +343,17 @@ class FPS_GT511C3(SerialCommander):
         self._timeout = timeout
         self._serial = connect(device_name, baud, timeout, is_com=is_com)
         if not self._serial is None:
-            delay(0.1)
+            time.sleep(.1)
             self.Open()
         elif self.UseSerialDebug:
-            print '[FPS_GT511C3] Cannot connect to device %s' % self._device_name
+            debug_msg('FPS_GT511C3', 'Cannot connect to device {}'.format(self._device_name))
 
     def Open(self):
         '''
             Initialises the device and gets ready for commands
         '''
         self.ChangeBaudRate(BAUD)
-        delay(0.1)
+        time.sleep(.1)
         cp = Command_Packet('Open', UseSerialDebug=self.UseSerialDebug)
         cp.ParameterFromInt(1)
         packetbytes = cp.GetPacketBytes()
@@ -421,7 +421,7 @@ class FPS_GT511C3(SerialCommander):
             retval = rp.ACK
             if retval:
                 if self.UseSerialDebug:
-                    print 'Changing port baudrate'
+                    debug_msg('Changing port baudrate')
                 self._serial.close()
                 BAUD = baud
                 self._serial = connect(
@@ -793,29 +793,28 @@ class FPS_GT511C3(SerialCommander):
                 print repr(bytes(cmd))[1:-1]
         else:
             if self.UseSerialDebug:
-                print '[SendCommand] Cannot write to %s' % self._device_name
+                debug_msg('Cannot write to {}'.format(self._device_name), 'SendCommand')
 
     def GetResponse(self):
         '''
         Gets the response to the command from the software serial channel (and waits for it)
         '''
-        interval = 0.1
-        delay(interval)
+        time.sleep(.1)
         if self._serial is None:
             rp = Response_Packet()
-            print '[GetResponse] Cannot read from %s' % self._device_name
+            debug_msg('Cannot read from {}'.format(self._device_name), 'GetResponse')
         else:
             r = bytearray(self._serial.read(self._serial.inWaiting()))
             rp = Response_Packet(r, self.UseSerialDebug)
 
         if rp.ACK:
-            delay(interval)
+            time.sleep(.1)
             r2 = bytearray(self._serial.read(self._serial.inWaiting()))
             rp2 = Response_Packet(r2, self.UseSerialDebug)
             while str(rp2._lastBuffer).__len__() > 0:
                 rp.RawBytes.extend(rp2.RawBytes)
                 rp._lastBuffer += rp2._lastBuffer
-                delay(interval)
+                time.sleep(.1)
                 r2 = bytearray(self._serial.read(self._serial.inWaiting()))
                 rp2 = Response_Packet(r2, self.UseSerialDebug)
         self._lastResponse = rp
