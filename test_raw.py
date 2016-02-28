@@ -107,7 +107,7 @@ def GetRawImg(fps):
             print fps.serializeToSend(response)
             print u'Size %s' % str(response.__len__())
             ret = bytes(response)
-    FPS.delay(0.1)
+    time.sleep(0.1)
     fps.SetLED(False)
     return ret
 
@@ -142,23 +142,23 @@ def SaveImage(imgName,imgRaw):
 def Enroll(fps,id):
     imgRaw = GetRawImg(fps)
     if imgRaw.__len__()>0:
-        FPS.delay(3)
+        time.sleep(3)
         SaveImage('fingerprint'+id+'.raw', imgRaw)
     """
         imgRaw2 = GetRawImg(fps)
         if imgRaw2.__len__()>0:
-            FPS.delay(3)
+            time.sleep(3)
             SaveImage('fingerprint2.raw', imgRaw2)
             imgRaw3 = GetRawImg(fps)
             if imgRaw3.__len__()>0:
-                FPS.delay(3)
+                time.sleep(3)
                 SaveImage('fingerprint3.raw', imgRaw3)
     """
 
 def Verify(fps,id):
     imgRaw = GetRawImg(fps)
     if imgRaw.__len__()>0:
-        FPS.delay(3)
+        time.sleep(3)
         img = processImage('fingerprint_verify_'+id+'.raw',imgRaw)
         savedImg1 = SavedImg('fingerprint'+id+'.raw')
         return 'Verified is: %s' % (str(matchBif(img, savedImg1)))
