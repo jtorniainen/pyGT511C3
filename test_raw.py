@@ -1,7 +1,7 @@
-import FPS
+import fps
 from PIL import Image, ImageEnhance
 import numpy as np
-FPS.BAUD = 115200
+import time
 
 def desplazarImagen(image,image2,delta):
     "Roll an image sideways"
@@ -101,7 +101,7 @@ def matchBif(im1,im2):
 
 def GetRawImg(fps):
     ret = bytes()
-    if fps.SetLED(True) and fps.IsPressFinger():
+    if fps.SetLED(True):
         if fps.GetRawImage():
             response = fps._lastResponse.RawBytes[16:]
             print fps.serializeToSend(response)

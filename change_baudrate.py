@@ -13,9 +13,8 @@ Executes this script only once
 import fps, sys
 
 if __name__ == '__main__':
-    fps = fps.FPS_GT511C3()
-    fps.UseSerialDebug = True
-    fps.ChangeBaudRate(115200)
-    fps.Close()
+    scanner = fps.FPS_GT511C3()
+    scanner.ChangeBaudRate(115200)
+    scanner.Close()
     pass
 

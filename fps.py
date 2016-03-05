@@ -28,17 +28,7 @@ def serial_ports():
     '''
     Returns a generator for all available serial ports
     '''
-    if os.name == 'nt':
-        # windows
-        _comports = [port for port in list_ports.comports()]
-        if _comports.__len__() > 0:
-            _serial_ports = [p for p in _comports[0]]
-        else:
-            _serial_ports = []
-    else:
-        # unix
-        _serial_ports = [port[0] for port in list_ports.comports()]
-    return _serial_ports
+    return _serial_ports = [port[0] for port in list_ports.comports()]
 
 
 def devices(index=None):
@@ -352,7 +342,7 @@ class FPS_GT511C3(SerialCommander):
         del packetbytes
         return rp.ACK
 
-    def Close(self):
+    def close(self):
         '''
              Does not actually do anything (according to the datasheet)
              I implemented open, so had to do closed too... lol
@@ -370,7 +360,7 @@ class FPS_GT511C3(SerialCommander):
         del packetbytes
         return rp.ACK
 
-    def SetLED(self, on=True):
+    def set_led(self, on=True):
         '''
              Turns on or off the LED backlight
              LED must be on to see fingerprints
@@ -390,7 +380,7 @@ class FPS_GT511C3(SerialCommander):
         del packetbytes
         return retval
 
-    def ChangeBaudRate(self, baud):
+    def change_baud_rate(self, baud):
         '''
              Changes the baud rate of the connection
              Parameter: 9600 - 115200
@@ -419,14 +409,12 @@ class FPS_GT511C3(SerialCommander):
             del packetbytes  # TODO why del these?
         return retval
 
-    def GetEnrollCount(self):
+    def get_enroll_count(self):
         '''
              Gets the number of enrolled fingerprints
              Return: The total number of enrolled fingerprints
         '''
-        cp = Command_Packet(
-            'GetEnrollCount',
-            serial_dbg=self.serial_dbg)
+        cp = Command_Packet('GetEnrollCount', serial_dbg=self.serial_dbg)
         cp.Parameter[0] = 0x00
         cp.Parameter[1] = 0x00
         cp.Parameter[2] = 0x00
@@ -439,15 +427,13 @@ class FPS_GT511C3(SerialCommander):
         del packetbytes
         return retval
 
-    def CheckEnrolled(self, ID):
+    def check_enrolled(self, ID):
         '''
              checks to see if the ID number is in use or not
              Parameter: 0-199
              Return: True if the ID number is enrolled, false if not
         '''
-        cp = Command_Packet(
-            'CheckEnrolled',
-            serial_dbg=self.serial_dbg)
+        cp = Command_Packet('CheckEnrolled', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
         del cp
@@ -458,7 +444,7 @@ class FPS_GT511C3(SerialCommander):
         del rp
         return retval
 
-    def EnrollStart(self, ID):
+    def enroll_start(self, ID):
         '''
              Starts the Enrollment Process
              Parameter: 0-199
@@ -486,7 +472,7 @@ class FPS_GT511C3(SerialCommander):
         del rp
         return retval
 
-    def Enroll1(self):
+    def enroll1(self):
         '''
              Gets the first scan of an enrollment
              Return:
@@ -510,7 +496,7 @@ class FPS_GT511C3(SerialCommander):
                 retval = 2
         return 0 if rp.ACK else retval
 
-    def Enroll2(self):
+    def enroll2(self):
         '''
              Gets the Second scan of an enrollment
              Return:
@@ -534,7 +520,7 @@ class FPS_GT511C3(SerialCommander):
                 retval = 2
         return 0 if rp.ACK else retval
 
-    def Enroll3(self):
+    def enroll3(self):
         '''
              Gets the Third scan of an enrollment
              Finishes Enrollment
@@ -559,7 +545,7 @@ class FPS_GT511C3(SerialCommander):
                 retval = 2
         return 0 if rp.ACK else retval
 
-    def IsPressFinger(self):
+    def is_press_finger(self):
         '''
              Checks to see if a finger is pressed on the FPS
              Return: true if finger pressed, false if not
@@ -578,7 +564,7 @@ class FPS_GT511C3(SerialCommander):
         del cp
         return retval
 
-    def DeleteID(self, ID):
+    def delete_id(self, ID):
         '''
              Deletes the specified ID (enrollment) from the database
              Returns: true if successful, false if position invalid
@@ -594,7 +580,7 @@ class FPS_GT511C3(SerialCommander):
         del cp
         return retval
 
-    def DeleteAll(self):
+    def delete_all(self):
         '''
              Deletes all IDs (enrollments) from the database
              Returns: true if successful, false if db is empty
@@ -609,7 +595,7 @@ class FPS_GT511C3(SerialCommander):
         del cp
         return retval
 
-    def Verify1_1(self, ID):
+    def verify1_1(self, ID):
         '''
              Checks the currently pressed finger against a specific ID
              Parameter: 0-199 (id number to be checked)
@@ -637,7 +623,7 @@ class FPS_GT511C3(SerialCommander):
         del cp
         return retval
 
-    def Identify1_N(self):
+    def identify1_N(self):
         '''
              Checks the currently pressed finger against all enrolled
              fingerprints
@@ -658,7 +644,7 @@ class FPS_GT511C3(SerialCommander):
         del cp
         return retval
 
-    def CaptureFinger(self, highquality=True):
+    def capture_finger(self, highquality=True):
         '''
              Captures the currently pressed finger into onboard ram
              Parameter: true for high quality image(slower), false for low
@@ -680,7 +666,7 @@ class FPS_GT511C3(SerialCommander):
         del cp
         return retval
 
-    def GetImage(self):
+    def get_image(self):
         '''
              Gets an image that is 258x202 (52116 bytes) and returns it in
              407 Data_Packets Use StartDataDownload, and then
@@ -695,7 +681,7 @@ class FPS_GT511C3(SerialCommander):
         retval = rp.ACK
         return retval
 
-    def GetRawImage(self):
+    def get_raw_image(self):
         '''
              Gets an image that is qvga 160x120 (19200 bytes) and returns
              it in 150 Data_Packets Use StartDataDownload, and then
@@ -712,7 +698,7 @@ class FPS_GT511C3(SerialCommander):
         retval = rp.ACK
         return retval
 
-    def GetTemplate(self, ID):
+    def get_template(self, ID):
         '''
              Gets a template from the fps (498 bytes) in 4 Data_Packets
              Use StartDataDownload, and then GetNextDataPacket until done
@@ -769,7 +755,7 @@ class FPS_GT511C3(SerialCommander):
                          reason... not implemented
     '''
 
-    def SendCommand(self, cmd, length):
+    def send_command(self, cmd, length):
         '''
              resets the Data_Packet class, and gets ready to download
              Not implemented due to memory restrictions on the arduino
@@ -792,7 +778,7 @@ class FPS_GT511C3(SerialCommander):
                 debug_msg('Cannot write to {}'.format(self._device_name),
                           'SendCommand')
 
-    def GetResponse(self):
+    def get_response(self):
         '''
         Gets the response to the command from the software serial channel
         (and waits for it)
