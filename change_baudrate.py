@@ -14,7 +14,7 @@ import fps, sys
 
 if __name__ == '__main__':
     scanner = fps.FPS_GT511C3()
-    scanner.ChangeBaudRate(115200)
-    scanner.Close()
+    scanner.change_baud_rate(115200)
+    scanner.close()
     pass
 

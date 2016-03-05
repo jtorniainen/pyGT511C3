@@ -36,8 +36,8 @@ import time
 
 if __name__ == '__main__':
     scanner = fps.FPS_GT511C3(baud=115200)
-    scanner.SetLED(True)  # Turns ON the CMOS LED
+    scanner.set_led(True)  # Turns ON the CMOS LED
     time.sleep(5)
-    scanner.SetLED(False)  # Turns ON the CMOS LED
+    scanner.set_led(False)  # Turns ON the CMOS LED
     time.sleep(5)
-    scanner.Close()  # Closes serial connection
+    scanner.close()  # Closes serial connection

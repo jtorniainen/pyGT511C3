@@ -28,7 +28,7 @@ def serial_ports():
     '''
     Returns a generator for all available serial ports
     '''
-    return _serial_ports = [port[0] for port in list_ports.comports()]
+    return [port[0] for port in list_ports.comports()]
 
 
 def devices(index=None):
@@ -337,8 +337,8 @@ class FPS_GT511C3(SerialCommander):
         cp = Command_Packet('Open', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(1)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         del packetbytes
         return rp.ACK
 
@@ -353,8 +353,8 @@ class FPS_GT511C3(SerialCommander):
         cp.Parameter[2] = 0x00
         cp.Parameter[3] = 0x00
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         if self._serial:
             self._serial.close()
         del packetbytes
@@ -373,8 +373,8 @@ class FPS_GT511C3(SerialCommander):
         cp.Parameter[2] = 0x00
         cp.Parameter[3] = 0x00
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = rp.ACK
         del rp
         del packetbytes
@@ -393,9 +393,9 @@ class FPS_GT511C3(SerialCommander):
             cp = Command_Packet('ChangeBaudrate', serial_dbg=self.serial_dbg)
             cp.ParameterFromInt(baud)
             packetbytes = cp.GetPacketBytes()
-            self.SendCommand(packetbytes, 12)
+            self.send_command(packetbytes, 12)
             time.sleep(.5)
-            rp = self.GetResponse()
+            rp = self.get_response()
             time.sleep(.5)
             retval = rp.ACK
             if retval:
@@ -420,8 +420,8 @@ class FPS_GT511C3(SerialCommander):
         cp.Parameter[2] = 0x00
         cp.Parameter[3] = 0x00
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = rp.IntFromParameter()
         del rp
         del packetbytes
@@ -437,9 +437,9 @@ class FPS_GT511C3(SerialCommander):
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
         del cp
-        self.SendCommand(packetbytes, 12)
+        self.send_command(packetbytes, 12)
         del packetbytes
-        rp = self.GetResponse()
+        rp = self.get_response()
         retval = rp.ACK
         del rp
         return retval
@@ -458,9 +458,9 @@ class FPS_GT511C3(SerialCommander):
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
         del cp
-        self.SendCommand(packetbytes, 12)
+        self.send_command(packetbytes, 12)
         del packetbytes
-        rp = self.GetResponse()
+        rp = self.get_response()
         retval = 0
         if not rp.ACK:
             if rp.Error == rp.errors['NACK_DB_IS_FULL']:
@@ -484,9 +484,9 @@ class FPS_GT511C3(SerialCommander):
         cp = Command_Packet('Enroll1', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         del cp
-        self.SendCommand(packetbytes, 12)
+        self.send_command(packetbytes, 12)
         del packetbytes
-        rp = self.GetResponse()
+        rp = self.get_response()
         retval = rp.IntFromParameter()
         retval = 3 if retval < 200 else 0
         if not rp.ACK:
@@ -508,9 +508,9 @@ class FPS_GT511C3(SerialCommander):
         cp = Command_Packet('Enroll2', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         del cp
-        self.SendCommand(packetbytes, 12)
+        self.send_command(packetbytes, 12)
         del packetbytes
-        rp = self.GetResponse()
+        rp = self.get_response()
         retval = rp.IntFromParameter()
         retval = 3 if retval < 200 else 0
         if not rp.ACK:
@@ -533,9 +533,9 @@ class FPS_GT511C3(SerialCommander):
         cp = Command_Packet('Enroll3', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
         del cp
-        self.SendCommand(packetbytes, 12)
+        self.send_command(packetbytes, 12)
         del packetbytes
-        rp = self.GetResponse()
+        rp = self.get_response()
         retval = rp.IntFromParameter()
         retval = 3 if retval < 200 else 0
         if not rp.ACK:
@@ -552,8 +552,8 @@ class FPS_GT511C3(SerialCommander):
         '''
         cp = Command_Packet('IsPressFinger', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         pval = rp.ParameterBytes[0]
         pval += rp.ParameterBytes[1]
         pval += rp.ParameterBytes[2]
@@ -572,8 +572,8 @@ class FPS_GT511C3(SerialCommander):
         cp = Command_Packet('DeleteID', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = rp.ACK
         del rp
         del packetbytes
@@ -587,8 +587,8 @@ class FPS_GT511C3(SerialCommander):
         '''
         cp = Command_Packet('DeleteAll', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = rp.ACK
         del rp
         del packetbytes
@@ -608,8 +608,8 @@ class FPS_GT511C3(SerialCommander):
         cp = Command_Packet('Verify1_1', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = 0
         if not rp.ACK:
             if rp.Error == rp.errors['NACK_INVALID_POS']:
@@ -634,8 +634,8 @@ class FPS_GT511C3(SerialCommander):
         '''
         cp = Command_Packet('Identify1_N', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = rp.IntFromParameter()
         if retval > 200:
             retval = 200
@@ -658,8 +658,8 @@ class FPS_GT511C3(SerialCommander):
         cp = Command_Packet('CaptureFinger', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(1 if highquality else 0)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = rp.ACK
         del rp
         del packetbytes
@@ -676,8 +676,8 @@ class FPS_GT511C3(SerialCommander):
         '''
         cp = Command_Packet('GetImage', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = rp.ACK
         return retval
 
@@ -693,8 +693,8 @@ class FPS_GT511C3(SerialCommander):
         '''
         cp = Command_Packet('GetRawImage', serial_dbg=self.serial_dbg)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = rp.ACK
         return retval
 
@@ -711,8 +711,8 @@ class FPS_GT511C3(SerialCommander):
         cp = Command_Packet('GetTemplate', serial_dbg=self.serial_dbg)
         cp.ParameterFromInt(ID)
         packetbytes = cp.GetPacketBytes()
-        self.SendCommand(packetbytes, 12)
-        rp = self.GetResponse()
+        self.send_command(packetbytes, 12)
+        rp = self.get_response()
         retval = 0
         if not rp.ACK:
             if rp.Error == rp.errors['NACK_INVALID_POS']:
